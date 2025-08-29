@@ -1,0 +1,5 @@
+# This file controls code ownership in GitHub
+# Lines starting with '#' are comments.
+
+# Set @jorgennhn as the code owner of everything in the repo
+*   @jorgennhn
