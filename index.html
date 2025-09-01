@@ -77,13 +77,6 @@
             flex-direction: column;
         }
 
-        .fnr-header-copy-text {
-            font-size: 0.8rem;
-            font-weight: normal;
-            color: #666;
-            margin-top: 4px;
-        }
-
         .miljo-header {
             text-align: center;
         }
@@ -92,7 +85,6 @@
             text-align: center;
         }
 
-        /* Fødselsnummer og tooltip */
         .fnr-cell {
             cursor: default;
             color: inherit;
@@ -140,7 +132,6 @@
             border-color: #333 transparent transparent transparent;
         }
 
-        /* Hover vises kun når ikke kopiert */
         .fnr-text:hover:not(.copied-active) .tooltip-hover {
             opacity: 1;
         }
@@ -187,15 +178,6 @@
 
         button:active {
             transform: translateY(0);
-        }
-
-        .feature-container {
-            margin-top: 40px;
-            display: none;
-        }
-
-        .feature-container.active {
-            display: block;
         }
 
         @media (max-width: 768px) {
@@ -266,16 +248,13 @@
                 <button onclick="updateTables()">Generer lenker til featuremiljø</button>
             </div>
         </div>
-        
+
         <table>
             <thead>
                 <tr>
-                    <th>
-                        <div class="fnr-header">
-                            Fødselsnummer
-                        </div>
-                    </th>
+                    <th>Fødselsnummer</th>
                     <th>Navn</th>
+                    <th class="miljo-header" id="featureHeader" style="display:none;">Feature</th>
                     <th class="miljo-header">MAS-01</th>
                     <th class="miljo-header">MAS-02</th>
                     <th class="miljo-header">TEST-01</th>
@@ -292,12 +271,9 @@
             <table>
                 <thead>
                     <tr>
-                        <th>
-                            <div class="fnr-header">
-                                Fødselsnummer
-                            </div>
-                        </th>
+                        <th>Fødselsnummer</th>
                         <th>Navn</th>
+                        <th class="miljo-header" id="featureHeaderAdmin" style="display:none;">Feature</th>
                         <th class="miljo-header">MAS-01</th>
                         <th class="miljo-header">MAS-02</th>
                         <th class="miljo-header">TEST-01</th>
@@ -309,13 +285,11 @@
                 <tbody id="adminTableBody"></tbody>
             </table>
         </div>
-
-        <div id="featureContainer" class="feature-container"></div>
     </div>
 
     <script>
         const testpersoner = [
-            { fnr: "13766991003", navn: "Liten Danser" },
+            { fnr: "13766991003", navn: "LITEN DANSER" },
             { fnr: "23820199685", navn: "ALTERNATIV BAJAS" },
             { fnr: "06928998353", navn: "ETTERPÅKLOK MEDISTERDEIG" },
             { fnr: "66835400272", navn: "STERK MOTVIND" },
@@ -324,7 +298,7 @@
         ];
 
         const adminPersoner = [
-            { fnr: "11898099247", navn: "Troverdig Blokkfløyte" }
+            { fnr: "11898099247", navn: "TROVERDIG BLOKKFLØYTE" }
         ];
 
         const miljoer = {
@@ -349,21 +323,17 @@
             navigator.clipboard.writeText(text).then(() => {
                 const copiedTooltip = element.querySelector(".tooltip-copied");
                 if (!copiedTooltip) return;
-
                 element.classList.add("copied-active");
                 copiedTooltip.classList.add("temp-visible");
-
                 clearTimeout(copiedTooltip._hideTimer);
                 copiedTooltip._hideTimer = setTimeout(() => {
                     copiedTooltip.classList.remove("temp-visible");
                     element.classList.remove("copied-active");
                 }, 2000);
-            }).catch(err => {
-                console.error("Klarte ikke å kopiere:", err);
-            });
+            }).catch(err => console.error("Klarte ikke å kopiere:", err));
         }
 
-        function generateTableRows(personArray, tableBodyId, isTjenester) {
+        function generateTableRows(personArray, tableBodyId, isTjenester, featureEnv) {
             const tableBody = document.getElementById(tableBodyId);
             tableBody.innerHTML = "";
 
@@ -379,99 +349,32 @@
                     </td>
                     <td data-label="Navn">${person.navn}</td>
                 `;
+
+                // Feature-kolonne mellom Navn og MAS-01
+                if (featureEnv) {
+                    const featureUrl = isTjenester
+                        ? `https://tjenester-${featureEnv}.int-hn.nhn.no/?pnr=${person.fnr}`
+                        : `https://admin-helsenorge-${featureEnv}.int-hn.nhn.no/?fnr=${person.fnr}`;
+                    rowContent += `<td class="miljo-button-cell" data-label="Feature"><a href="${featureUrl}" target="_blank"><button>Feature</button></a></td>`;
+                }
+
                 for (const env in miljoer) {
                     const url = isTjenester ? miljoer[env] + person.fnr : adminUrls[env] + person.fnr;
                     rowContent += `<td class="miljo-button-cell" data-label="${env}"><a href="${url}" target="_blank"><button>${env}</button></a></td>`;
                 }
+
                 row.innerHTML = rowContent;
                 tableBody.appendChild(row);
             });
         }
 
-        function generateFeatureTables() {
-            const envName = document.getElementById("featureInput").value.trim();
-            const container = document.getElementById("featureContainer");
-            container.innerHTML = "";
-
-            if (!envName) {
-                container.classList.remove("active");
-                return;
-            }
-
-            container.classList.add("active");
-
-            let testTableHtml = `
-                <h2>Lenker til feature-miljø: ${envName}</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>
-                                <div class="fnr-header">
-                                    Fødselsnummer
-                                </div>
-                            </th>
-                            <th>Navn</th>
-                            <th>Lenke</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-            testpersoner.forEach(tp => {
-                const url = `https://tjenester-${envName}.int-hn.nhn.no/?pnr=${tp.fnr}`;
-                testTableHtml += `
-                    <tr>
-                        <td data-label="Fødselsnummer" class="fnr-cell">
-                            <span class="fnr-text" onclick="copyToClipboard('${tp.fnr}', this)">
-                                ${tp.fnr}
-                                <span class="tooltip tooltip-hover">Klikk for å kopiere</span>
-                                <span class="tooltip tooltip-copied">Kopiert!</span>
-                            </span>
-                        </td>
-                        <td data-label="Navn">${tp.navn}</td>
-                        <td data-label="Lenke"><a href="${url}" target="_blank"><button>Åpne</button></a></td>
-                    </tr>`;
-            });
-            testTableHtml += `</tbody></table>`;
-
-            let adminTableHtml = `
-                <div style="margin-top: 40px;">
-                    <h2>Admin-lenker for feature-miljø: ${envName}</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>
-                                    <div class="fnr-header">
-                                        Fødselsnummer
-                                    </div>
-                                </th>
-                                <th>Navn</th>
-                                <th>Lenke</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-            adminPersoner.forEach(tp => {
-                const url = `https://admin-helsenorge-${envName}.int-hn.nhn.no/?fnr=${tp.fnr}`;
-                adminTableHtml += `
-                    <tr>
-                        <td data-label="Fødselsnummer" class="fnr-cell">
-                            <span class="fnr-text" onclick="copyToClipboard('${tp.fnr}', this)">
-                                ${tp.fnr}
-                                <span class="tooltip tooltip-hover">Klikk for å kopiere</span>
-                                <span class="tooltip tooltip-copied">Kopiert!</span>
-                            </span>
-                        </td>
-                        <td data-label="Navn">${tp.navn}</td>
-                        <td data-label="Lenke"><a href="${url}" target="_blank"><button>Åpne</button></a></td>
-                    </tr>`;
-            });
-            adminTableHtml += `</tbody></table></div>`;
-
-            container.innerHTML = testTableHtml + adminTableHtml;
-        }
-
         function updateTables() {
-            generateTableRows(testpersoner, "personTableBody", true);
-            generateTableRows(adminPersoner, "adminTableBody", false);
-            generateFeatureTables();
+            const featureEnv = document.getElementById("featureInput").value.trim();
+            document.getElementById("featureHeader").style.display = featureEnv ? "" : "none";
+            document.getElementById("featureHeaderAdmin").style.display = featureEnv ? "" : "none";
+
+            generateTableRows(testpersoner, "personTableBody", true, featureEnv);
+            generateTableRows(adminPersoner, "adminTableBody", false, featureEnv);
         }
 
         updateTables();
