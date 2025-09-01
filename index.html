@@ -28,8 +28,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
-        
-        /* Skiller ut elementene fra containeren */
+
         .admin-table-container {
             margin-top: 40px;
         }
@@ -38,18 +37,18 @@
             display: flex;
             align-items: center;
             margin-bottom: 20px;
-            flex-wrap: wrap; /* Tillater at elementer brytes til ny linje */
+            flex-wrap: wrap;
         }
-        
+
         .header-container h2 {
             margin: 0;
         }
 
         .feature-input-container {
-            margin-left: auto; /* Dytter containeren til høyre */
+            margin-left: auto;
             display: flex;
             align-items: center;
-            gap: 10px; /* Mellomrom mellom input og knapp */
+            gap: 10px;
         }
 
         table {
@@ -72,40 +71,82 @@
             font-weight: 600;
             text-align: left;
         }
-        
-        /* Ny styling for å stable overskrift og undertekst */
+
         .fnr-header {
             display: flex;
             flex-direction: column;
         }
-        
+
         .fnr-header-copy-text {
             font-size: 0.8rem;
             font-weight: normal;
             color: #666;
             margin-top: 4px;
         }
-        
-        /* Midtstil overskrifter for miljøer */
+
         .miljo-header {
             text-align: center;
         }
-        
-        /* Midtstil innhold i celler med knapper */
+
         .miljo-button-cell {
             text-align: center;
         }
-        
-        /* Gjør FNR-teksten mer som vanlig tekst, men med en interaktiv peker */
+
+        /* Fødselsnummer og tooltip */
         .fnr-cell {
-            cursor: pointer;
-            color: #333; /* Endret fra blått */
-            font-weight: 500;
-            text-decoration: none;
+            cursor: default;
+            color: inherit;
         }
-        
-        .fnr-cell:hover {
-            text-decoration: none;
+
+        .fnr-text {
+            position: relative;
+            display: inline-block;
+            font-weight: 500;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .fnr-text:hover {
+            color: #0077cc;
+        }
+
+        .tooltip-hover,
+        .tooltip-copied {
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .tooltip-hover::after,
+        .tooltip-copied::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+        /* Hover vises kun når ikke kopiert */
+        .fnr-text:hover:not(.copied-active) .tooltip-hover {
+            opacity: 1;
+        }
+
+        .tooltip-copied.temp-visible {
+            opacity: 1;
         }
 
         tr:last-child td {
@@ -157,7 +198,6 @@
             display: block;
         }
 
-        /* --- Responsiv CSS for små skjermer (under 768px) --- */
         @media (max-width: 768px) {
             .header-container {
                 flex-direction: column;
@@ -175,16 +215,15 @@
             input[type="text"],
             .feature-input-container button {
                 width: 100%;
-                box-sizing: border-box; /* Sørger for at padding og border er inkludert i bredden */
+                box-sizing: border-box;
             }
 
-            /* Endrer tabellvisningen til blokker */
             table, thead, tbody, th, td, tr {
                 display: block;
             }
 
             thead {
-                display: none; /* Skjuler den originale overskriftsraden */
+                display: none;
             }
 
             tr {
@@ -203,7 +242,7 @@
             }
 
             td:before {
-                content: attr(data-label); /* Henter etikett fra data-attributt */
+                content: attr(data-label);
                 position: absolute;
                 left: 10px;
                 width: calc(50% - 20px);
@@ -273,8 +312,7 @@
             </table>
         </div>
 
-        <div id="featureContainer" class="feature-container">
-            </div>
+        <div id="featureContainer" class="feature-container"></div>
     </div>
 
     <script>
@@ -309,44 +347,61 @@
             "PRODKOPI": "https://admin-helsenorge-prodkopi-01.int-hn.nhn.no/?pnr="
         };
 
+        function copyToClipboard(text, element) {
+            navigator.clipboard.writeText(text).then(() => {
+                const copiedTooltip = element.querySelector(".tooltip-copied");
+                if (!copiedTooltip) return;
+
+                element.classList.add("copied-active");
+                copiedTooltip.classList.add("temp-visible");
+
+                clearTimeout(copiedTooltip._hideTimer);
+                copiedTooltip._hideTimer = setTimeout(() => {
+                    copiedTooltip.classList.remove("temp-visible");
+                    element.classList.remove("copied-active");
+                }, 2000);
+            }).catch(err => {
+                console.error("Klarte ikke å kopiere:", err);
+            });
+        }
+
         function generateTableRows(personArray, tableBodyId, isTjenester) {
             const tableBody = document.getElementById(tableBodyId);
             tableBody.innerHTML = "";
-            
-            const featureEnv = document.getElementById("featureInput").value.trim();
 
             personArray.forEach(person => {
                 const row = document.createElement("tr");
                 let rowContent = `
-                    <td class="fnr-cell" data-label="Fødselsnummer" onclick="copyToClipboard('${person.fnr}')" title="Klikk for å kopiere til utklippstavle">${person.fnr}</td>
+                    <td class="fnr-cell" data-label="Fødselsnummer">
+                        <span class="fnr-text" onclick="copyToClipboard('${person.fnr}', this)">
+                            ${person.fnr}
+                            <span class="tooltip tooltip-hover">Klikk for å kopiere</span>
+                            <span class="tooltip tooltip-copied">Kopiert!</span>
+                        </span>
+                    </td>
                     <td data-label="Navn">${person.navn}</td>
                 `;
-
-                // Legger til standard miljølenker
                 for (const env in miljoer) {
                     const url = isTjenester ? miljoer[env] + person.fnr : adminUrls[env] + person.fnr;
                     rowContent += `<td class="miljo-button-cell" data-label="${env}"><a href="${url}" target="_blank"><button>${env}</button></a></td>`;
                 }
-
                 row.innerHTML = rowContent;
                 tableBody.appendChild(row);
             });
         }
-        
-        // Ny funksjon for å generere feature-tabell
+
         function generateFeatureTables() {
             const envName = document.getElementById("featureInput").value.trim();
             const container = document.getElementById("featureContainer");
             container.innerHTML = "";
-            
+
             if (!envName) {
                 container.classList.remove("active");
                 return;
             }
-            
+
             container.classList.add("active");
 
-            // Generer lenker for testpersoner
             let testTableHtml = `
                 <h2>Lenker til feature-miljø: ${envName}</h2>
                 <table>
@@ -367,14 +422,19 @@
                 const url = `https://tjenester-${envName}.int-hn.nhn.no/?pnr=${tp.fnr}`;
                 testTableHtml += `
                     <tr>
-                        <td data-label="Fødselsnummer" class="fnr-cell" onclick="copyToClipboard('${tp.fnr}')" title="Klikk for å kopiere til utklippstavle">${tp.fnr}</td>
+                        <td data-label="Fødselsnummer" class="fnr-cell">
+                            <span class="fnr-text" onclick="copyToClipboard('${tp.fnr}', this)">
+                                ${tp.fnr}
+                                <span class="tooltip tooltip-hover">Klikk for å kopiere</span>
+                                <span class="tooltip tooltip-copied">Kopiert!</span>
+                            </span>
+                        </td>
                         <td data-label="Navn">${tp.navn}</td>
                         <td data-label="Lenke"><a href="${url}" target="_blank"><button>Åpne</button></a></td>
                     </tr>`;
             });
             testTableHtml += `</tbody></table>`;
 
-            // Generer lenker for adminpersoner
             let adminTableHtml = `
                 <div style="margin-top: 40px;">
                     <h2>Admin-lenker for feature-miljø: ${envName}</h2>
@@ -396,7 +456,13 @@
                 const url = `https://admin-helsenorge-${envName}.int-hn.nhn.no/?fnr=${tp.fnr}`;
                 adminTableHtml += `
                     <tr>
-                        <td data-label="Fødselsnummer" class="fnr-cell" onclick="copyToClipboard('${tp.fnr}')" title="Klikk for å kopiere til utklippstavle">${tp.fnr}</td>
+                        <td data-label="Fødselsnummer" class="fnr-cell">
+                            <span class="fnr-text" onclick="copyToClipboard('${tp.fnr}', this)">
+                                ${tp.fnr}
+                                <span class="tooltip tooltip-hover">Klikk for å kopiere</span>
+                                <span class="tooltip tooltip-copied">Kopiert!</span>
+                            </span>
+                        </td>
                         <td data-label="Navn">${tp.navn}</td>
                         <td data-label="Lenke"><a href="${url}" target="_blank"><button>Åpne</button></a></td>
                     </tr>`;
@@ -404,14 +470,6 @@
             adminTableHtml += `</tbody></table></div>`;
 
             container.innerHTML = testTableHtml + adminTableHtml;
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                // Ingen visuell tilbakemelding til brukeren, som forespurt.
-            }).catch(err => {
-                console.error('Klarte ikke å kopiere: ', err);
-            });
         }
 
         function updateTables() {
@@ -422,7 +480,7 @@
 
         updateTables();
     </script>
-    
+
     <footer style="margin-top: 40px; padding: 15px 20px; text-align: center; font-size: 0.9rem; color: #555; border-top: 1px solid #ddd;">
         Denne siden er åpen for endringer – bidra gjerne på 
         <a href="https://github.com/jorgennhn/jorgennhn.github.io/" target="_blank">GitHub</a>.
