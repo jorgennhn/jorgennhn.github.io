@@ -184,6 +184,18 @@
             transform: translateY(0);
         }
 
+        .badge {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 2px 8px;
+        font-size: 0.75rem;
+        border-radius: 10px;
+        background-color: #002920;
+        color: #fff;
+        font-weight: 600;
+        vertical-align: middle;
+      }
+
         @media (max-width: 768px) {
             .header-container {
                 flex-direction: column;
@@ -298,7 +310,12 @@
             { fnr: "06928998353", navn: "ETTERPÅKLOK MEDISTERDEIG" },
             { fnr: "66835400272", navn: "STERK MOTVIND" },
             { fnr: "20877899722", navn: "POMPØS DØRSTOKKMIL" },
-            { fnr: "14918697862", navn: "KOMPETENT ROLIG MÅNEFASE" }
+            { fnr: "14918697862", navn: "KOMPETENT ROLIG MÅNEFASE" },
+            {
+              fnr: '18860449699',
+              navn: 'FRISK KONVOLUTT',
+              egenskaper: ['Nettlege'],
+            },
         ];
 
         const adminPersoner = [
@@ -351,7 +368,16 @@
                             <span class="tooltip tooltip-copied">Kopiert!</span>
                         </span>
                     </td>
-                    <td data-label="Navn">${person.navn}</td>
+                    <td data-label="Navn">
+                      ${person.navn}
+                      ${
+                        person.egenskaper
+                          ? person.egenskaper
+                              .map((e) => `<span class="badge">${e}</span>`)
+                              .join(' ')
+                          : ''
+                      }
+                    </td>
                 `;
 
                 // Feature-kolonne mellom Navn og MAS-01
