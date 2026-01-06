@@ -29,7 +29,7 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
-        .admin-table-container {
+        .table-container {
             margin-top: 40px;
         }
 
@@ -282,7 +282,7 @@
             <tbody id="personTableBody"></tbody>
         </table>
 
-        <div class="admin-table-container">
+        <div class="table-container">
             <h2>Admin-lenker</h2>
             <table>
                 <thead>
@@ -299,6 +299,26 @@
                     </tr>
                 </thead>
                 <tbody id="adminTableBody"></tbody>
+            </table>
+        </div>
+
+         <div class="table-container">
+            <h2>CMS-lenker</h2>
+            <p>NB! test01 bruker miljøet til test02</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fødselsnummer</th>
+                        <th>Navn</th>
+                        <th class="miljo-header" id="featureHeaderAdmin" style="display:none;">Feature</th>
+                        <th class="miljo-header">MAS-01</th>
+                        <th class="miljo-header">MAS-02</th>
+                        <th class="miljo-header">TEST-01</th>
+                        <th class="miljo-header">TEST-02</th>
+                        <th class="miljo-header">QA</th>
+                    </tr>
+                </thead>
+                <tbody id="cmsTableBody"></tbody>
             </table>
         </div>
     </div>
@@ -327,6 +347,10 @@
             { fnr: "11898099247", navn: "TROVERDIG BLOKKFLØYTE" }
         ];
 
+          const cmsPersoner = [
+            { fnr: "", navn: "-" }
+        ];
+
         const miljoer = {
             "MAS-01": "https://tjenester-hn-mas-01.int-hn.nhn.no/?pnr=",
             "MAS-02": "https://tjenester-hn-mas-02.int-hn.nhn.no/?pnr=",
@@ -345,6 +369,14 @@
             "PRODKOPI": "https://admin-helsenorge-prodkopi-01.int-hn.nhn.no/?pnr="
         };
 
+        const cmsUrls = {
+            "MAS-01": "https://red-epi-helsenorge-mas-01.int-hn.nhn.no/",
+            "MAS-02": "https://red-epi-helsenorge-mas-02.int-hn.nhn.no/",
+            "TEST-01": "https://red-epi-helsenorge.hn2.test.nhn.no/episerver/cms/",
+            "TEST-02": "https://red-epi-helsenorge.hn2.test.nhn.no/episerver/cms/",
+            "QA": "https://red-epi-helsenorge.hn.qa.nhn.no/episerver/cms/#context=epi.cms.contentdata:///11&viewsetting=viewlanguage:///no",
+        };
+
         function copyToClipboard(text, element) {
             navigator.clipboard.writeText(text).then(() => {
                 const copiedTooltip = element.querySelector(".tooltip-copied");
@@ -359,7 +391,7 @@
             }).catch(err => console.error("Klarte ikke å kopiere:", err));
         }
 
-        function generateTableRows(personArray, tableBodyId, isTjenester, featureEnv) {
+        function generateTableRows(personArray, tableBodyId, isTjenester, featureEnv, urls) {
             const tableBody = document.getElementById(tableBodyId);
             tableBody.innerHTML = "";
 
@@ -393,8 +425,8 @@
                     rowContent += `<td class="miljo-button-cell" data-label="Feature"><a href="${featureUrl}" target="_blank"><button>Feature</button></a></td>`;
                 }
 
-                for (const env in miljoer) {
-                    const url = isTjenester ? miljoer[env] + person.fnr : adminUrls[env] + person.fnr;
+                for (const env in urls) {
+                    const url = `${urls[env]}${person.fnr}`;
                     rowContent += `<td class="miljo-button-cell" data-label="${env}"><a href="${url}" target="_blank"><button>${env}</button></a></td>`;
                 }
 
@@ -408,8 +440,9 @@
             document.getElementById("featureHeader").style.display = featureEnv ? "" : "none";
             document.getElementById("featureHeaderAdmin").style.display = featureEnv ? "" : "none";
 
-            generateTableRows(testpersoner, "personTableBody", true, featureEnv);
-            generateTableRows(adminPersoner, "adminTableBody", false, featureEnv);
+            generateTableRows(testpersoner, "personTableBody", true, featureEnv, miljoer);
+            generateTableRows(adminPersoner, "adminTableBody", false, featureEnv, adminUrls);
+            generateTableRows(cmsPersoner, "cmsTableBody", false, false, cmsUrls)
         }
 
         updateTables();
