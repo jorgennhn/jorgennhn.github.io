@@ -89,6 +89,15 @@
             text-align: center;
         }
 
+        .miljo-button-cell a {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .miljo-button-cell a:last-child {
+            margin-bottom: 0;
+        }
+
         .fnr-cell {
             cursor: default;
             color: inherit;
@@ -369,6 +378,15 @@
             "PRODKOPI": "https://admin-helsenorge-prodkopi-01.int-hn.nhn.no/?pnr="
         };
 
+        const adminInternUrls = {
+            "MAS-01": "https://admin-helsenorge-intern-mas-01.int-hn.nhn.no/?fnr=",
+            "MAS-02": "https://admin-helsenorge-intern-mas-02.int-hn.nhn.no/?fnr=",
+            "TEST-01": "https://admin-helsenorge-intern.hn.test.nhn.no/?fnr=",
+            "TEST-02": "https://admin-helsenorge-intern.hn2.test.nhn.no/?fnr=",
+            "QA": "https://admin-helsenorge-intern.hn.qa.nhn.no/?fnr=",
+            "PRODKOPI": "https://admin-helsenorge-intern-prodkopi-01.int-hn.nhn.no/?fnr="
+        };
+
         const cmsUrls = {
             "MAS-01": "https://red-epi-helsenorge-mas-01.int-hn.nhn.no/",
             "MAS-02": "https://red-epi-helsenorge-mas-02.int-hn.nhn.no/",
@@ -391,7 +409,7 @@
             }).catch(err => console.error("Klarte ikke å kopiere:", err));
         }
 
-        function generateTableRows(personArray, tableBodyId, isTjenester, featureEnv, urls) {
+        function generateTableRows(personArray, tableBodyId, isTjenester, featureEnv, urls, internUrls = null) {
             const tableBody = document.getElementById(tableBodyId);
             tableBody.innerHTML = "";
 
@@ -422,12 +440,27 @@
                     const featureUrl = isTjenester
                         ? `https://tjenester-${featureEnv}.int-hn.nhn.no/?pnr=${person.fnr}`
                         : `https://admin-helsenorge-${featureEnv}.int-hn.nhn.no/?fnr=${person.fnr}`;
-                    rowContent += `<td class="miljo-button-cell" data-label="Feature"><a href="${featureUrl}" target="_blank"><button>Feature</button></a></td>`;
+                    let featureCellContent = `<a href="${featureUrl}" target="_blank"><button>Feature</button></a>`;
+                    
+                    // Legg til Intern-knapp for admin-tabellen
+                    if (!isTjenester && internUrls) {
+                        const internFeatureUrl = `https://admin-helsenorge-intern-${featureEnv}.int-hn.nhn.no/?fnr=${person.fnr}`;
+                        featureCellContent += `<a href="${internFeatureUrl}" target="_blank"><button>Intern</button></a>`;
+                    }
+                    
+                    rowContent += `<td class="miljo-button-cell" data-label="Feature">${featureCellContent}</td>`;
                 }
 
                 for (const env in urls) {
                     const url = `${urls[env]}${person.fnr}`;
-                    rowContent += `<td class="miljo-button-cell" data-label="${env}"><a href="${url}" target="_blank"><button>${env}</button></a></td>`;
+                    let cellContent = `<a href="${url}" target="_blank"><button>${env}</button></a>`;
+                    
+                    if (internUrls && internUrls[env]) {
+                        const internUrl = `${internUrls[env]}${person.fnr}`;
+                        cellContent += `<a href="${internUrl}" target="_blank"><button>Intern</button></a>`;
+                    }
+                    
+                    rowContent += `<td class="miljo-button-cell" data-label="${env}">${cellContent}</td>`;
                 }
 
                 row.innerHTML = rowContent;
@@ -441,7 +474,7 @@
             document.getElementById("featureHeaderAdmin").style.display = featureEnv ? "" : "none";
 
             generateTableRows(testpersoner, "personTableBody", true, featureEnv, miljoer);
-            generateTableRows(adminPersoner, "adminTableBody", false, featureEnv, adminUrls);
+            generateTableRows(adminPersoner, "adminTableBody", false, featureEnv, adminUrls, adminInternUrls);
             generateTableRows(cmsPersoner, "cmsTableBody", false, false, cmsUrls)
         }
 
